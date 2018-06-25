@@ -24,20 +24,19 @@ class TradingBot(object):
 
         for x in range(0, self.populationSize):
             self.population.append(Agent(self.data))
-        print(self.populationSize, self.generationAnzahl )
+        print('Size: ',self.populationSize, len(self.population))
         self.startBot()
+
 
 
     def __init__(self):
 
-        r =redis.StrictRedis( host='localhost',port='6379')
-        p = r.pubsub()
-        r.set('foo','bar')
-        value= r.get('foo')
-        print(value)
-        r.publish('Test', 'START')
-        p.subscribe('Test')
-        for message in p.listen():
+        self.redis =redis.StrictRedis( host='localhost',port='6379')
+        self.pubsub = self.redis.pubsub()
+
+        self.redis.publish('Test', 'START')
+        self.pubsub.subscribe('Test')
+        for message in self.pubsub.listen():
             self.inputData =message['data']
             if( type(self.inputData) == int ):
                 print('message: '+ str(self.inputData))
@@ -51,6 +50,7 @@ class TradingBot(object):
         #wechselt das Verzeichnis damit man auf die Outputdateien zugreifen kann.
         toDirectory= os.getcwd() if ('output' in os.getcwd() ) else os.getcwd() + r'\output'
         os.chdir(toDirectory)
+        outputStr=''
         print('Start Bot: ',os.getcwd())
         i= int(os.listdir(os.getcwd())[-1].split('.txt')[0][3:]) + 1
         dateiName= "out{:03}.txt".format(i)
@@ -60,27 +60,33 @@ class TradingBot(object):
         fo= open(dateiName,"w")
         for y in range(0, self.generationAnzahl):
             # usdGewinne=self.fitnessFkt()
+            outputStr +='{} {}\n'.format('time start: ',str(self.start))
             fo.write('time start: '+str(self.start)+'\n')
             print("current generation: ", y)
             fo.write("current generation is %d\n"% y)
+            outputStr += 'current generation is {}\n'.format(y)
+            print('agents vor fitnessFunction: ' + str(len(self.population)))
             self.fitnessFunction()
 
             if y == self.generationAnzahl-1:
                 agents = sorted(self.population, key=lambda x: x.portfolio['USD'], reverse=True)
+                print('agents: '+str(len(self.population)))
                 holdings = (1000 / float(self.data[0])) * float(self.data[-1])
 
                 #print("  USD, einkaufProzent, verkaufProzent, stoplossEinkauf, stoplossVerkauf")
 
                 #print("Die Tradesanzahl von der besten Strategie is ", agents[0].tradesNum)
+                outputStr += 'Die Tradesanzahl von der besten Strategie: {}\n'.format(agents[0].tradesNum)
                 fo.write("Die Tradesanzahl von der besten Strategie: %d \n" % agents[0].tradesNum)
                 #print("Die Beste Strategie ist zu kaufen, auf einen Anstieg von ", agents[0].genotype.verkaufProzent,"% zu warten und dann bei einem Abfall von ", agents[0].genotype.einkaufProzent, "% zu verkaufen")
                 fo.write("Die Beste Strategie ist zu kaufen, auf einen Anstieg von %(verkaufProzent).2lf %% zu warten und dann bei einem Abfall von %(einkaufProzent).2lf %% zu verkaufen\n"%
                          {"verkaufProzent":agents[0].genotype.verkaufProzent, "einkaufProzent":agents[0].genotype.einkaufProzent})
-
+                outputStr += 'Die Beste Strategie ist zu kaufen, auf einen Anstieg von : {} % zu warten und dann bei einem Abfall von {}% zu verkaufen\n'.format(agents[0].genotype.verkaufProzent, agents[0].genotype.einkaufProzent)
                 #print("sollte der Preis unter %(Einkaufswert).2lf %% von Einkaufswert fallen dann verkaufe\n"% { "Einkaufswert":agents[0].genotype.stoplossVerkauf * agents[0].genotype.verkaufProzent })
                 fo.write("sollte der Preis unter %(Einkaufswert).2lf %% von Einkaufswert fallen dann verkaufe\n" % {"Einkaufswert": agents[0].genotype.stoplossVerkauf * agents[0].genotype.verkaufProzent})
-
+                outputStr += 'sollte der Preis unter {:.2f} % von Einkaufswert fallen dann verkaufe\n'.format(agents[0].genotype.stoplossVerkauf * agents[0].genotype.verkaufProzent)
                 fo.write(" Oder sollte er %(Verkaufswert)lf %% über den Verkaufswert steigen dann kaufe\n"% {"Verkaufswert": agents[0].genotype.stoplossEinkauf * agents[0].genotype.einkaufProzent});
+                outputStr += ' Oder sollte er {:.2f} % über den Verkaufswert steigen dann kaufe\n'.format(agents[0].genotype.stoplossEinkauf * agents[0].genotype.einkaufProzent)
                 #print([(
                 #   x.portfolio['USD'], x.genotype.einkaufProzent, x.genotype.verkaufProzent, x.genotype.stoplossEinkauf,
                 #    x.genotype.stoplossVerkauf, x.tradesNum, x.gezahlt) for x in agents])
@@ -93,17 +99,24 @@ class TradingBot(object):
 
                 #print("Hold: ", holdings)
                 fo.write("Hold: %d\n"% holdings)
+                outputStr += 'Hold {} \n'.format(holdings)
+                print('outputStr: '+outputStr)
                 #print("The best strategy is " + str(int(agents[0].portfolio['USD'] / holdings * 100) - 100) + "% better than holding")
 
                 fo.write("The best strategy is %(usd)lf %% better than holding\n" % {"usd": (agents[0].portfolio['USD'] / holdings * 100) - 100 })
-
+                outputStr += 'The best strategy is {} % better than holding\n'.format(((agents[0].portfolio['USD'] / holdings * 100) - 100 ))
                 fo.write('Entire job took:' + str(datetime.now() - self.start)+'\n')
+                outputStr += 'Entire job took:{} \n'.format(str(datetime.now() - self.start))
                 fo.close()
+                self.redis.set(dateiName, outputStr)
+                value = self.redis.get(dateiName)
+                print('value: ', value)
                 #return fo
 
                 break
             else:
                 self.population = self.kreuzung()
+
 
             # print("usdGewinne: ",usdGewinne)
 
@@ -115,7 +128,7 @@ class TradingBot(object):
     def fitnessFunction(self):
         t1 = datetime.now()
         usdGewinne = []
-        print("Testing strategies....")
+        print("Testing trategies....")
         self.threader()
         print("Pool took: ", datetime.now() - t1)
 
@@ -123,14 +136,22 @@ class TradingBot(object):
         agent.startTrading()
         return agent
 
+
+
     def threader(self):
         """ Pool creates the pool of processes that controls the workers.
         parallelizing the execution of a function across multiple input values
         distributing the input data across processes(data paralallism)
         """
         p = Pool()
-        res= p.map(self.worker, self.population)
-        self.population = res[:]
+        print('Size in Pool: ',self.populationSize, len(self.population))
+
+        result=p.map_async(self.worker, self.population) #p.map(self.worker, self.population)
+        print('Size: ',self.populationSize, result.ready())
+        if result.ready():  # 进程函数是否已经启动了
+            if result.successful():  # 进程函数是否执行成功
+                print(result.get())
+                self.population = result.get()
         p.close()
         p.join()
 
@@ -240,9 +261,9 @@ class TradingBot(object):
 
 
 if __name__ == '__main__':
-    #print("hello")
+    print("hello")
     start =TradingBot()
-    start.initBot()
+    #start.initBot()
     #fo = open("out.txt", "a+",  encoding='utf-8')
     #fo.write("_Salwa");
     """
