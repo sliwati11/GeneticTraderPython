@@ -18,13 +18,13 @@
 apt-get install redis-server
 ```
 * Redis starten
-Die einfachste art und weise um Redis zu starten ist die Redis-Server-Binärdatei ohne irgendein Argument auszuführen
-im Terminal in Linux eingeben:
+>Die einfachste art und weise um Redis zu starten ist die Redis-Server-Binärdatei ohne irgendein Argument auszuführen
+>im Terminal in Linux eingeben:
 ``` 
 redis-server
 ```
 * Überprüfen Sie, ob Redis funktioniert
-Im Terminal in Linux eingeben:
+>Im Terminal in Linux eingeben:
 ``` 
 redis-cli ping
 pong
