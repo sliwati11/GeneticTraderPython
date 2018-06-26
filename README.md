@@ -31,7 +31,8 @@ redis-cli ping
 pong
 ```
 * Redis ausmachen
-```SHUTDOWN 
+```
+SHUTDOWN 
 ```
 #### Format von den gepushten Nachrichten
 
