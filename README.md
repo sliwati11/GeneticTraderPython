@@ -8,11 +8,11 @@
 >**RDB**-Files sind perfekt für Backups.
 #### Redis Data Structure
 >Redis ist ein Datenstrukturserver, die viele arten von Values unterstützt.
-..*Strings
-..*Lists
-..*Sets
-..*Hashes
-..*Bit arrays
+* Strings
+* Lists
+* Sets
+* Hashes
+* Bit arrays
 #### Installing Redis auf Linux
 ```
 apt-get install redis-server
