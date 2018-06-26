@@ -23,7 +23,7 @@ class TradingBot(object):
         self.data = TradinData().data
 
         for x in range(0, self.populationSize):
-            self.population.append(Agent(self.data))
+            self.population.append(Agent(self.data, self.inputData ))
         print('Size: ',self.populationSize, len(self.population))
         self.startBot()
 
@@ -34,8 +34,10 @@ class TradingBot(object):
         self.redis =redis.StrictRedis( host='localhost',port='6379')
         self.pubsub = self.redis.pubsub()
 
-        self.redis.publish('Test', 'START')
-        self.pubsub.subscribe('Test')
+        self.redis.publish('TraderReady', 'START')
+        self.pubsub.subscribe('TraderReady')
+        #self.pubsub.subscribe("InRedis")
+
         for message in self.pubsub.listen():
             self.inputData =message['data']
             if( type(self.inputData) == int ):
@@ -44,26 +46,31 @@ class TradingBot(object):
                 print('message: '+ self.inputData.decode("utf-8") )
                 self.inputData= json.loads(self.inputData.decode("utf-8"))
                 print('agentenAnzahl: ', self.inputData['agentenAnzahl'])
+                print('buy_range_von: ', self.inputData['buy_range_von'])
                 self.initBot()
 
     def startBot(self):
         #wechselt das Verzeichnis damit man auf die Outputdateien zugreifen kann.
-        toDirectory= os.getcwd() if ('output' in os.getcwd() ) else os.getcwd() + r'\output'
-        os.chdir(toDirectory)
+        #toDirectory= os.getcwd() if ('output' in os.getcwd() ) else os.getcwd() + r'\output'
+        #os.chdir(toDirectory)
         outputStr=''
-        print('Start Bot: ',os.getcwd())
-        i= int(os.listdir(os.getcwd())[-1].split('.txt')[0][3:]) + 1
-        dateiName= "out{:03}.txt".format(i)
-        print('dateiName: ', dateiName)
+        print('Start Bot: ')
+        #i= int(os.listdir(os.getcwd())[-1].split('.txt')[0][3:]) + 1
+         #"out{:03}.txt".format(i)
+
         #Open a File
         self.start = datetime.now()
-        fo= open(dateiName,"w")
+        dateiName= str(self.start.microsecond)
+        print('dateiName: ', dateiName)
+        #fo= open(dateiName,"w")
         for y in range(0, self.generationAnzahl):
             # usdGewinne=self.fitnessFkt()
             outputStr +='{} {}\n'.format('time start: ',str(self.start))
-            fo.write('time start: '+str(self.start)+'\n')
+            outputStr += '{} {}\n'.format('time start: ', str(self.start))
+
+            #fo.write('time start: '+str(self.start)+'\n')
             print("current generation: ", y)
-            fo.write("current generation is %d\n"% y)
+            #fo.write("current generation is %d\n"% y)
             outputStr += 'current generation is {}\n'.format(y)
             print('agents vor fitnessFunction: ' + str(len(self.population)))
             self.fitnessFunction()
@@ -77,38 +84,40 @@ class TradingBot(object):
 
                 #print("Die Tradesanzahl von der besten Strategie is ", agents[0].tradesNum)
                 outputStr += 'Die Tradesanzahl von der besten Strategie: {}\n'.format(agents[0].tradesNum)
-                fo.write("Die Tradesanzahl von der besten Strategie: %d \n" % agents[0].tradesNum)
+                #fo.write("Die Tradesanzahl von der besten Strategie: %d \n" % agents[0].tradesNum)
                 #print("Die Beste Strategie ist zu kaufen, auf einen Anstieg von ", agents[0].genotype.verkaufProzent,"% zu warten und dann bei einem Abfall von ", agents[0].genotype.einkaufProzent, "% zu verkaufen")
-                fo.write("Die Beste Strategie ist zu kaufen, auf einen Anstieg von %(verkaufProzent).2lf %% zu warten und dann bei einem Abfall von %(einkaufProzent).2lf %% zu verkaufen\n"%
+                '''fo.write("Die Beste Strategie ist zu kaufen, auf einen Anstieg von %(verkaufProzent).2lf %% zu warten und dann bei einem Abfall von %(einkaufProzent).2lf %% zu verkaufen\n"%
                          {"verkaufProzent":agents[0].genotype.verkaufProzent, "einkaufProzent":agents[0].genotype.einkaufProzent})
+                '''
                 outputStr += 'Die Beste Strategie ist zu kaufen, auf einen Anstieg von : {} % zu warten und dann bei einem Abfall von {}% zu verkaufen\n'.format(agents[0].genotype.verkaufProzent, agents[0].genotype.einkaufProzent)
                 #print("sollte der Preis unter %(Einkaufswert).2lf %% von Einkaufswert fallen dann verkaufe\n"% { "Einkaufswert":agents[0].genotype.stoplossVerkauf * agents[0].genotype.verkaufProzent })
-                fo.write("sollte der Preis unter %(Einkaufswert).2lf %% von Einkaufswert fallen dann verkaufe\n" % {"Einkaufswert": agents[0].genotype.stoplossVerkauf * agents[0].genotype.verkaufProzent})
+                #fo.write("sollte der Preis unter %(Einkaufswert).2lf %% von Einkaufswert fallen dann verkaufe\n" % {"Einkaufswert": agents[0].genotype.stoplossVerkauf * agents[0].genotype.verkaufProzent})
                 outputStr += 'sollte der Preis unter {:.2f} % von Einkaufswert fallen dann verkaufe\n'.format(agents[0].genotype.stoplossVerkauf * agents[0].genotype.verkaufProzent)
-                fo.write(" Oder sollte er %(Verkaufswert)lf %% über den Verkaufswert steigen dann kaufe\n"% {"Verkaufswert": agents[0].genotype.stoplossEinkauf * agents[0].genotype.einkaufProzent});
+                #fo.write(" Oder sollte er %(Verkaufswert)lf %% über den Verkaufswert steigen dann kaufe\n"% {"Verkaufswert": agents[0].genotype.stoplossEinkauf * agents[0].genotype.einkaufProzent});
                 outputStr += ' Oder sollte er {:.2f} % über den Verkaufswert steigen dann kaufe\n'.format(agents[0].genotype.stoplossEinkauf * agents[0].genotype.einkaufProzent)
                 #print([(
                 #   x.portfolio['USD'], x.genotype.einkaufProzent, x.genotype.verkaufProzent, x.genotype.stoplossEinkauf,
                 #    x.genotype.stoplossVerkauf, x.tradesNum, x.gezahlt) for x in agents])
-                fo.write("  USD, einkaufProzent, verkaufProzent, stoplossEinkauf, stoplossVerkauf \n");
+                #fo.write("  USD, einkaufProzent, verkaufProzent, stoplossEinkauf, stoplossVerkauf \n");
                 for x in agents:
-                    fo.write(" (%(usd).2lf %(einkaufProzent).2lf %(verkaufProzent).2lf %(stoplossEinkauf).2lf %(stoplossVerkauf).2lf "
+                    '''fo.write(" (%(usd).2lf %(einkaufProzent).2lf %(verkaufProzent).2lf %(stoplossEinkauf).2lf %(stoplossVerkauf).2lf "
                              "%(tradesNum).2lf %(gezahlt).2lf)\n" % {"usd": x.portfolio['USD'], "einkaufProzent": x.genotype.einkaufProzent,
                             "verkaufProzent":x.genotype.verkaufProzent, "stoplossEinkauf":  x.genotype.stoplossEinkauf ,
                              "stoplossVerkauf": x.genotype.stoplossVerkauf, "tradesNum": x.tradesNum, "gezahlt":  x.gezahlt})
-
+                    '''
                 #print("Hold: ", holdings)
-                fo.write("Hold: %d\n"% holdings)
+                #fo.write("Hold: %d\n"% holdings)
                 outputStr += 'Hold {} \n'.format(holdings)
                 print('outputStr: '+outputStr)
                 #print("The best strategy is " + str(int(agents[0].portfolio['USD'] / holdings * 100) - 100) + "% better than holding")
 
-                fo.write("The best strategy is %(usd)lf %% better than holding\n" % {"usd": (agents[0].portfolio['USD'] / holdings * 100) - 100 })
+                #fo.write("The best strategy is %(usd)lf %% better than holding\n" % {"usd": (agents[0].portfolio['USD'] / holdings * 100) - 100 })
                 outputStr += 'The best strategy is {} % better than holding\n'.format(((agents[0].portfolio['USD'] / holdings * 100) - 100 ))
-                fo.write('Entire job took:' + str(datetime.now() - self.start)+'\n')
+                #fo.write('Entire job took:' + str(datetime.now() - self.start)+'\n')
                 outputStr += 'Entire job took:{} \n'.format(str(datetime.now() - self.start))
-                fo.close()
-                self.redis.set(dateiName, outputStr)
+                #fo.close()
+                self.redis.set('Output:'+dateiName, outputStr)
+                self.redis.publish('InRedis','Result is in Redis')
                 value = self.redis.get(dateiName)
                 print('value: ', value)
                 #return fo
