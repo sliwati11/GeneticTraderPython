@@ -21,17 +21,19 @@ class TradingBot(object):
         self.generationAnzahl = int(self.inputData['generationAnzahl']) #int(self.data.generationAnzahl) #int(sys.argv[2])   #int(lines[1]) #3
         self.population = []
         self.data = TradinData().data
+        print('initBot: inputData '+str(self.inputData))
 
         for x in range(0, self.populationSize):
-            self.population.append(Agent(self.data, self.inputData ))
+            self.population.append(Agent(self.data, self.inputData))
+
         print('Size: ',self.populationSize, len(self.population))
-        self.startBot()
+        #self.startBot()
 
 
 
     def __init__(self):
 
-        self.redis =redis.StrictRedis( host='localhost',port='6379')
+        self.redis = redis.StrictRedis(host='localhost', port='6379')
         self.pubsub = self.redis.pubsub()
 
         self.redis.publish('TraderReady', 'START')
@@ -39,14 +41,33 @@ class TradingBot(object):
         #self.pubsub.subscribe("InRedis")
 
         for message in self.pubsub.listen():
-            self.inputData =message['data']
-            if( type(self.inputData) == int ):
-                print('message: '+ str(self.inputData))
+            self.inputData = message['data']
+            if type(self.inputData) == int:
+                print('message: '+str(self.inputData))
             else:
-                print('message: '+ self.inputData.decode("utf-8") )
-                self.inputData= json.loads(self.inputData.decode("utf-8"))
+                print('message: '+self.inputData.decode("utf-8"))
+
+
+                self.inputData = json.loads(self.inputData.decode("utf-8"))
+                print('TradingBot __init: inputData ' + str(self.inputData))
+                self.key = 'Output:{}/{}/{}/{}/{}/{}/{}/{}/{}/{}'.format(self.inputData['agentenAnzahl'],self.inputData['generationAnzahl'],
+                                                                          self.inputData['buy_range_von'],
+                                                                          self.inputData['buy_range_bis'],
+                                                                          self.inputData['sell_range_von'],
+                                                                          self.inputData['sell_range_bis'],
+                                                                          self.inputData['buy_stoplos_von'],
+                                                                          self.inputData['buy_stoplos_bis'],
+                                                                          self.inputData['sell_stoplos_von'],
+                                                                          self.inputData['sell_stoplos_bis'])
+                #if( self.key in self.redis.keys())
+                print('self.key: '+self.key)
+                #for key in self.redis.scan_iter():
+                    #if( self.key in key.decode('ASCII')):
+                    #print('key.decode'+key.decode('ASCII'), self.key in key.decode('ASCII'))
+                #print('Keys: '+ ', '.join(self.redis.keys()))
                 print('agentenAnzahl: ', self.inputData['agentenAnzahl'])
                 print('buy_range_von: ', self.inputData['buy_range_von'])
+
                 self.initBot()
 
     def startBot(self):
@@ -77,7 +98,7 @@ class TradingBot(object):
 
             if y == self.generationAnzahl-1:
                 agents = sorted(self.population, key=lambda x: x.portfolio['USD'], reverse=True)
-                print('agents: '+str(len(self.population)))
+                print('agents: '+str(agents[0].genotype.chromosome))
                 holdings = (1000 / float(self.data[0])) * float(self.data[-1])
 
                 #print("  USD, einkaufProzent, verkaufProzent, stoplossEinkauf, stoplossVerkauf")
@@ -116,7 +137,7 @@ class TradingBot(object):
                 #fo.write('Entire job took:' + str(datetime.now() - self.start)+'\n')
                 outputStr += 'Entire job took:{} \n'.format(str(datetime.now() - self.start))
                 #fo.close()
-                self.redis.set('Output:'+dateiName, outputStr)
+                self.redis.set(self.key+'/'+dateiName,outputStr)
                 self.redis.publish('InRedis','Result is in Redis')
                 value = self.redis.get(dateiName)
                 print('value: ', value)
@@ -137,7 +158,7 @@ class TradingBot(object):
     def fitnessFunction(self):
         t1 = datetime.now()
         usdGewinne = []
-        print("Testing trategies....")
+        print("Testing Strategies....")
         self.threader()
         print("Pool took: ", datetime.now() - t1)
 
@@ -154,13 +175,15 @@ class TradingBot(object):
         """
         p = Pool()
         print('Size in Pool: ',self.populationSize, len(self.population))
+        print('Threader: ' + str(len(self.population)))
+        result = p.map_async(self.worker, self.population) #p.map(self.worker, self.population)
 
-        result=p.map_async(self.worker, self.population) #p.map(self.worker, self.population)
-        print('Size: ',self.populationSize, result.ready())
-        if result.ready():  # 进程函数是否已经启动了
-            if result.successful():  # 进程函数是否执行成功
-                print(result.get())
-                self.population = result.get()
+        print('Size: ', self.populationSize, result.ready())
+        if result.ready():
+            if result.successful():
+                print('Result: '+result.get())
+                self.startBot()
+                #self.population = result.get()
         p.close()
         p.join()
 
@@ -178,19 +201,22 @@ class TradingBot(object):
    """
     def kreuzung(self):
         print("Kreuzen....")
+        print('Kreuzung'+ str(self.inputData))
         newGeneration = []
         max = int(sum(map(lambda x: x.portfolio['USD'], self.population)))
 
         for x in range(int(self.populationSize / 2)):
             a = self.selectOne(max)
+            print('Kreuzng a: '+str(a.genotype.chromosome))
             aChromosome = a.genotype.chromosome
+            print('Kreuzung aChromosome: '+str(aChromosome))
             b = self.selectOne(max)
             bChromosome = b.genotype.chromosome
 
             obPaart = random.uniform(0, 1)
             # Es wird zu 60% gepaart
             if obPaart <= 0.6:
-                (a, b) = self.paarung(a, b)
+                a, b = self.paarung(a, b)
             else:
                 a = Agent(self.data, aChromosome)
                 b = Agent(self.data, bChromosome)
@@ -223,6 +249,7 @@ class TradingBot(object):
         mutiertListP2 = []
         # x*10 um die bin() benutzen zu können
         # 'ob0100101' in binP1
+        print('P1: Genotype '+str(p1.genotype.chromosome))
         binP1 = [bin(int(x * 10))[2:] for x in p1.genotype.chromosome]
         maxLen = len(max(binP1, key=len))
         # print("binP1: ", [ len(x) for x in binP1])
@@ -255,9 +282,8 @@ class TradingBot(object):
         a = Agent(self.data, mutiertListP1)
         b = Agent(self.data, mutiertListP2)
 
-        return (a, b)
+        return a , b
 
-    
     def selectOne(self, max):
         pick = random.uniform(0, max)
         current = 0
@@ -265,13 +291,14 @@ class TradingBot(object):
         for c in self.population:
             current += float(c.portfolio['USD'])
             if pick <= current:
+                print('SelectOne: '+str(self.population[counter].genotype.chromosome))
                 return self.population[counter]
             counter += 1
 
 
 if __name__ == '__main__':
     print("hello")
-    start =TradingBot()
+    start = TradingBot()
     #start.initBot()
     #fo = open("out.txt", "a+",  encoding='utf-8')
     #fo.write("_Salwa");

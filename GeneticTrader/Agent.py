@@ -13,24 +13,29 @@ Die Menge des Geldes am ende des Tradens ist der Wert, den die Fitnessfonktion z
 """
 class Agent(object):
 
-    def __init__(self, data, inputData, chromosomeList=None ):
+    def __init__(self, data, inputData=None, chromosomeList=None ):
 
         self.lastPrice = 0
         self.tradesNum = 0
         self.gezahlt = 0
         self.fees = 0.01
+        self.handleData = data
+        self.inputData = inputData
+
+        print('Agent: '+str(self.inputData))
 
         if chromosomeList is None:
-            self.genotype = Genotype(inputData)
-        else:
-            self.genotype = Genotype(chromosomeList, inputData)
+            self.genotype = Genotype(self.inputData)
 
-        self.alwaysInit(data)
+        else:
+            print('Agent chromosomeList:'+chromosomeList)
+            self.genotype = Genotype(chromosomeList)
+        self.alwaysInit()
+
     """Der agent wird immer so initialisiert"""
-    def alwaysInit(self, data):
+    def alwaysInit(self):
         self.portfolio = {'USD': 100, 'BTC': 0}
-        self.data = data
-        self.lastPrice = float(data[0])
+        self.lastPrice = float(self.handleData[0])
         # print( self.lastPrice )
         """Kaufe alles"""
         self.portfolio['BTC'] = self.portfolio['USD'] / self.lastPrice
@@ -42,7 +47,7 @@ class Agent(object):
     #Fitness Fkt
     def startTrading(self):
         #print("#Start Trading")
-        for actPrice in map(float,self.data):
+        for actPrice in map(float, self.handleData):
             #print("lastPrice: ", self.lastPrice)
             diff = actPrice - self.lastPrice
             diff_in_prozent = diff / self.lastPrice * 100
