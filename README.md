@@ -41,4 +41,14 @@ SHUTDOWN
 >sell_range_von/sell_range_bis/
 >buy_stoplos_von/buy_stoplos_bis/
 >sell_stoplos_von/sell_stoplos_bis/dateiName
+###Asyncio [intro-to-asyncio](https://www.blog.pythonlibrary.org/2016/07/26/python-3-an-intro-to-asyncio/).
+Asynco ist eine Module in Python3.4.
+Laut Documentation asyncio bietet Infrastruktur für das Schreiben von single-threaded Code unter Verwendung von Coroutinen, multiplexen des I/O-Zugriffs über Sockets und andere Ressourcen, Ausführen von Netzwerkclients und -servern und anderer verwandter Primitive".
+Das asyncio-Modul bietet einen Rahmen, der sich um die event loop dreht.
+####async and await
+async und await schlüsselworte sind in Python3.5
+mit ** async def ** definieren wir eine coroutine funktion
 
+>import asyncio
+>async def test():
+>  await another()
