@@ -13,28 +13,30 @@ Die Menge des Geldes am ende des Tradens ist der Wert, den die Fitnessfonktion z
 """
 class Agent(object):
 
-    def __init__(self, data, inputData=None, chromosomeList=None ):
+    def __init__(self, data, chromosomeList=None ): #inputData=None
 
         self.lastPrice = 0
         self.tradesNum = 0
         self.gezahlt = 0
         self.fees = 0.01
         self.handleData = data
-        self.inputData = inputData
+        #self.inputData = inputData.copy()
 
-        print('Agent: '+str(self.inputData))
+        #print('Agent: '+str(self.inputData))
 
         if chromosomeList is None:
-            self.genotype = Genotype(self.inputData)
+            self.genotype = Genotype() #self.inputData
 
         else:
-            print('Agent chromosomeList:'+chromosomeList)
+            #print('Agent chromosomeList:'+chromosomeList)
             self.genotype = Genotype(chromosomeList)
-        self.alwaysInit()
+
+        self.alwaysInit(data)
 
     """Der agent wird immer so initialisiert"""
-    def alwaysInit(self):
+    def alwaysInit(self, data):
         self.portfolio = {'USD': 100, 'BTC': 0}
+        self.data = data
         self.lastPrice = float(self.handleData[0])
         # print( self.lastPrice )
         """Kaufe alles"""
@@ -57,7 +59,7 @@ class Agent(object):
                 if diff_in_prozent <= -1*self.genotype.einkaufProzent or diff_in_prozent > self.genotype.stoplossEinkauf:
                     self.kaufe(actPrice)
             else:#Ich habe BTC
-                if diff_in_prozent >= self.genotype.verkaufProzent or  diff_in_prozent <= -1 * self.genotype.stoplossVerkauf:
+                if diff_in_prozent >= self.genotype.verkaufProzent or diff_in_prozent <= -1 * self.genotype.stoplossVerkauf:
                     self.verkaufe(actPrice)
 
         if self.portfolio['USD'] == 0:

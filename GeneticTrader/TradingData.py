@@ -28,7 +28,7 @@ class TradinData(object):
 
     def loadData(self):
         print("Load new Data!!\n")
-        print('getcwd ',os.getcwd())
+        #print('getcwd ',os.getcwd())
         file= "/Users/salwa/PycharmProjects/GeneticTrader/Data/dataTest"
         preis =[]
         i = 0
