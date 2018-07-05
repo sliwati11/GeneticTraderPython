@@ -221,8 +221,8 @@ class TradingBot(object):
 
             yMuttiert = int(self.mutation(y[0:schnittStelle] + ux), 2) / 10
             mutiertListP2.append(yMuttiert)
-        a = Agent(self.data, mutiertListP1)
-        b = Agent(self.data, mutiertListP2)
+        a = Agent(self.data, self.inputData, mutiertListP1)
+        b = Agent(self.data, self.inputData, mutiertListP2)
 
         return (a, b)
 
