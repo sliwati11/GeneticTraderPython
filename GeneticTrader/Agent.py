@@ -13,25 +13,27 @@ Die Menge des Geldes am ende des Tradens ist der Wert, den die Fitnessfonktion z
 """
 class Agent(object):
 
-    def __init__(self, data, chromosomeList=None ): #inputData=None
+    def __init__(self, handleData, inputData ,chromosomeList=None): #inputData=None
 
         self.lastPrice = 0
         self.tradesNum = 0
         self.gezahlt = 0
         self.fees = 0.01
-        self.handleData = data
+        self.handleData = handleData
+        self.inputData = inputData
         #self.inputData = inputData.copy()
 
-        #print('Agent: '+str(self.inputData))
+        #print('In Agent: '+str(self.inputData))
 
         if chromosomeList is None:
-            self.genotype = Genotype() #self.inputData
+            print('Agent inputData:' + str(self.inputData))
+            self.genotype = Genotype(self.inputData) #self.inputData
 
         else:
-            #print('Agent chromosomeList:'+chromosomeList)
-            self.genotype = Genotype(chromosomeList)
+            print('Agent inputData:'+str(self.inputData))
+            self.genotype = Genotype(self.inputData, chromosomeList)
 
-        self.alwaysInit(data)
+        self.alwaysInit(self.handleData)
 
     """Der agent wird immer so initialisiert"""
     def alwaysInit(self, data):
