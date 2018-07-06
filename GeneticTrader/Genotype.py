@@ -15,7 +15,7 @@ class Genotype(object):
         # if len(inputData) == 11:
 
         # self.inputData = inputData
-        print('Genotype inputData: '+str(inputData))
+        #print('Genotype inputData: '+str(inputData))
 
         if isinstance(inputData, dict):
             #print('inputData is not None' + str(type(inputData)) + str(inputData['buy_range_von']))

@@ -1,12 +1,17 @@
 import csv
 import os
 from datetime import datetime
+import urllib.request
 
-class TradinData(object):
 
-    def __init__(self):
+class TradingData(object):
+
+    def __init__(self, inputData):
         print("load Trading Data")
-        self.data= self.loadDataOld()
+        self.inputData = inputData
+        #self.loadOnline()
+
+        self.data = self.loadOnline()
 
     def loadDataOld(self):
         lowHigh = []
@@ -47,8 +52,23 @@ class TradinData(object):
         print("Load Trading Data is ready!")
         return preis
 
-if __name__ == '__main__':
+    def loadOnline(self):
+        lowHigh = []
 
-    trade = TradinData()
-    print(trade.loadData()[-1])
+        url1 = 'https://bitcoincharts.com/charts/chart.json?m='+str(self.inputData['m'])
+        url2 = '&SubmitButton=Draw&r='+str(self.inputData['r'])
+        url3 = '&i='+str(self.inputData['i'])
+        url4 = '&c=1s=&e=&Prev=&Next=&t=S&b=&a1=&m1=10&a2=&m2=25&x=0&i1=&i2=&i3=&i4=&v=1&cv=0&ps=0&l=0&p=0&'
+        url = url1 + url2 + url3 + url4
+        print('url: '+url)
+        request = urllib.request.Request(url)
+        response = urllib.request.urlopen(request)
+        responseList = eval(response.read().decode('utf-8'))
+        print('Response:', len(responseList))
+        for row in responseList:
+            lowHigh.append(row[1]) #for parameter Open
+
+        return lowHigh
+
+
 

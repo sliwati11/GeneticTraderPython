@@ -26,11 +26,11 @@ class Agent(object):
         #print('In Agent: '+str(self.inputData))
 
         if chromosomeList is None:
-            print('Agent inputData:' + str(self.inputData))
+            #print('Agent inputData:' + str(self.inputData))
             self.genotype = Genotype(self.inputData) #self.inputData
 
         else:
-            print('Agent inputData:'+str(self.inputData))
+            #print('Agent inputData:'+str(self.inputData))
             self.genotype = Genotype(self.inputData, chromosomeList)
 
         self.alwaysInit(self.handleData)

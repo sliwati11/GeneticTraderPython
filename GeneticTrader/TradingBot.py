@@ -4,7 +4,7 @@ from multiprocessing import Process, Queue, Pool, Manager
 import os
 import random
 import numpy as np
-from TradingData import TradinData
+from TradingData import TradingData
 import asyncio
 import redis
 import json
@@ -15,63 +15,55 @@ class TradingBot(object):
     Als nächstes müssen wir jeden Agenten mit den Daten, die wir geladen haben,   <traden> lassen
     """
     def initBot(self, inputData):
-        print('InitBot->:'+ str(inputData))
-        # lines = sys.stdin.readline()
-        # print('argv[0]: '+lines[0])
+
         self.populationSize = int(inputData['agentenAnzahl']) #int(self.data.agentenAnzahl) #int(sys.argv[1])  #int(lines[0]) #
         self.generationAnzahl = int(inputData['generationAnzahl']) #int(self.data.generationAnzahl) #int(sys.argv[2])   #int(lines[1]) #3
-        self.population = []
-        self.data = TradinData().data
         self.inputData = inputData
+        self.data = TradingData(self.inputData).data
+
 
         for x in range(0, self.populationSize):
             self.population.append(Agent(self.data, self.inputData))
-        print('populationSize: '+str(self.populationSize)+'\tgenerationAnzahl:'+str(self.generationAnzahl))
-        self.startBot()
 
+        self.startBot()
 
     def __init__(self):
 
-        self.redis =redis.StrictRedis( host='localhost',port='6379')
+        self.start = None
+        self.populationSize = None
+        self.generationAnzahl = None
+        self.population = []
+        self.data = None
+        self.redis = redis.StrictRedis( host='localhost',port='6379')
         p = self.redis.pubsub()
-        self.redis.set('foo','bar')
-        value= self.redis.get('foo')
-        print(value)
+
         self.redis.publish('Test', 'START')
         p.subscribe('TraderReady')
+
         for message in p.listen():
-            self.inputData =message['data']
-            if( type(self.inputData) == int ):
-                print('message: '+ str(self.inputData))
+            self.inputData = message['data']
+            if isinstance(self.inputData, int):
+                print('message: ' + str(self.inputData))
             else:
-                print('message: '+ self.inputData.decode("utf-8") )
-                inputData = json.loads(self.inputData.decode("utf-8"))
-                print('agentenAnzahl: ', str(inputData))
-                self.initBot(inputData)
+                print('message: ' + self.inputData.decode("utf-8") )
+
+                self.initBot(json.loads(self.inputData.decode("utf-8")))
 
     def startBot(self):
-        #wechselt das Verzeichnis damit man auf die Outputdateien zugreifen kann.
-        #toDirectory= os.getcwd() if ('output' in os.getcwd() ) else os.getcwd() + r'\output'
-        #os.chdir(toDirectory)
-        print('Start Bot: ',os.getcwd())
-        #i= int(os.listdir(os.getcwd())[-1].split('.txt')[0][3:]) + 1
-        outputStr=''
-        #Open a File
+
+        outputStr = ''
         self.start = datetime.now()
         dateiName = 'Output:'+str(self.start.microsecond)
         print('dateiName: ', dateiName)
 
-        #fo= open(dateiName,"w")
         for y in range(0, self.generationAnzahl):
-            #outputStr += '{} {}\n'.format('time start: ', str(datetime.now() - self.start))
-
-            #outputStr += 'current generation is {}\n'.format(y)
             print("current generation: ", y)
             print('{} {}\n'.format('Time start: ', str(datetime.now() - self.start)))
             self.fitnessFunction()
 
             if y == self.generationAnzahl-1:
                 agents = sorted(self.population, key=lambda x: x.portfolio['USD'], reverse=True)
+                print('data[0]: ' + str(self.data[0]) + ' [-1]:'+str(self.data[-1]))
                 holdings = (1000 / float(self.data[0])) * float(self.data[-1])
 
                 #print("  USD, einkaufProzent, verkaufProzent, stoplossEinkauf, stoplossVerkauf")
@@ -102,8 +94,6 @@ class TradingBot(object):
 
             # print("usdGewinne: ",usdGewinne)
 
-        # print(len(self.population))
-        # print("Fitness fkt fertig!!")
         print('outoputStr: '+outputStr)
 
 
@@ -113,7 +103,6 @@ class TradingBot(object):
         usdGewinne = []
         print("Testing strategies....")
         self.threader()
-        #print("Pool took: ", datetime.now() - t1)
 
     def worker(self, agent):
         agent.startTrading()
@@ -178,10 +167,10 @@ class TradingBot(object):
     def mutation(self, chromosome):
         # print("chro: ",chromosome)
         res = list(chromosome)
-        max = 1000
+        maximum = 1000
         for i in range(len(chromosome)):
             # Zur Wahrscheinlichkeit von 1/100 flippen wir
-            if (np.random.randint(1, max) == 1):
+            if np.random.randint(1, maximum) == 1:
                 res[i] = self.filppeBit(chromosome[i])
         return ''.join(res)
 
@@ -239,10 +228,8 @@ class TradingBot(object):
 
 
 if __name__ == '__main__':
-    #print("hello")
     TradingBot()
-    #fo = open("out.txt", "a+",  encoding='utf-8')
-    #fo.write("_Salwa");
+
     """
     # with 10 workers and 20 tasks, with each task being .5 seconds, then the completed job
     # is ~1 second using threading. Normally 20 tasks with .5 seconds each would take 10 seconds.

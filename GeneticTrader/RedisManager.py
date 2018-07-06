@@ -52,7 +52,7 @@ class RedisManager:
         try:
             await conn.execute_pubsub('subscribe', channel) #str(channel)
             chanel = conn.pubsub_channels[channel]
-            print('chanel: '+ channel)
+            print('chanel: ' + channel)
 
             ''' wait for reader to complete '''
             await self.reader(chanel)
